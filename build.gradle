@@ -1,0 +1,77 @@
+buildscript {
+    ext {
+        springBootVersion = '2.0.2.RELEASE'
+    }
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.1.0'
+    }
+}
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+
+
+task processPackageResources(type: Copy) {
+    duplicatesStrategy = 'include'
+}
+
+group 'org.deloitte.poc'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('com.amazonaws.serverless:aws-serverless-java-container-spring:1.1')
+    implementation('io.symphonia:lambda-logging:1.0.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+configurations {
+    all*.exclude module : 'spring-boot-starter-logging'
+}
+
+bootJar {
+    enabled false
+}
+import com.github.jengelman.gradle.plugins.shadow.transformers.*;
+
+shadowJar {
+    zip64= true
+    mergeServiceFiles()
+    baseName = 'lambda-aws-poc'
+    classifier='all'
+    //version = timestamp
+    manifest {
+        attributes 'Main-Class': 'com.deloitte.poc.Application'
+    }
+    append 'META-INF/spring.handlers'
+    append 'META-INF/spring.schemas'
+    append 'META-INF/spring.tooling'
+    transform(PropertiesFileTransformer) {
+        paths = ['META-INF/spring.factories' ]
+        mergeStrategy = "append"
+    }
+
+}
+tasks.build.dependsOn shadowJar
+
+test {
+    useJUnitPlatform()
+}
